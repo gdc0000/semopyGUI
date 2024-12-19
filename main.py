@@ -11,12 +11,32 @@ import pyreadstat
 def format_apa_statistics(stat_dict):
     """
     Formats a dictionary of statistics into APA style strings.
+    Safely handles non-numeric values by checking their type before formatting.
     """
     apa_output = ""
-    apa_output += f"Chi-square: {stat_dict.get('Chi-square', 'N/A'):.2f}, df = {stat_dict.get('df', 'N/A')}, p = {stat_dict.get('p-value', 'N/A')}\n"
-    apa_output += f"CFI: {stat_dict.get('CFI', 'N/A'):.3f}\n"
-    apa_output += f"TLI: {stat_dict.get('TLI', 'N/A'):.3f}\n"
-    apa_output += f"RMSEA: {stat_dict.get('RMSEA', 'N/A'):.3f} (90% CI {stat_dict.get('RMSEA Lower', 'N/A')} - {stat_dict.get('RMSEA Upper', 'N/A')})\n"
+    
+    # Helper function to format values
+    def safe_format(value, fmt=".2f"):
+        if isinstance(value, (int, float, np.number)):
+            return format(value, fmt)
+        else:
+            return value
+
+    chi_sq = safe_format(stat_dict.get('Chi-square', 'N/A'), ".2f")
+    df = safe_format(stat_dict.get('df', 'N/A'), "")
+    p_val = safe_format(stat_dict.get('p-value', 'N/A'), ".3f")
+    cfi = safe_format(stat_dict.get('CFI', 'N/A'), ".3f")
+    tli = safe_format(stat_dict.get('TLI', 'N/A'), ".3f")
+    rmsea = safe_format(stat_dict.get('RMSEA', 'N/A'), ".3f")
+    rmsea_lower = safe_format(stat_dict.get('RMSEA Lower', 'N/A'), ".3f")
+    rmsea_upper = safe_format(stat_dict.get('RMSEA Upper', 'N/A'), ".3f")
+    
+    # Construct APA-formatted string
+    apa_output += f"Chi-square: {chi_sq}, df = {df}, p = {p_val}\n"
+    apa_output += f"CFI: {cfi}\n"
+    apa_output += f"TLI: {tli}\n"
+    apa_output += f"RMSEA: {rmsea} (90% CI {rmsea_lower} - {rmsea_upper})\n"
+    
     return apa_output
 
 def load_data(uploaded_file):
@@ -117,14 +137,20 @@ def main():
                         st.write("### Parameter Estimates")
                         params = model.inspect().reset_index()
                         params.columns = ['Parameter', 'Estimate', 'Std. Error', 'z-value', 'p-value', 'CI Lower', 'CI Upper']
-                        st.dataframe(params.style.format({
-                            'Estimate': '{:.3f}',
-                            'Std. Error': '{:.3f}',
-                            'z-value': '{:.3f}',
-                            'p-value': '{:.3f}',
-                            'CI Lower': '{:.3f}',
-                            'CI Upper': '{:.3f}'
-                        }))
+                        
+                        # Function to safely format parameter estimates
+                        def safe_param_format(val, fmt="{:.3f}"):
+                            try:
+                                return fmt.format(val)
+                            except:
+                                return val
+
+                        # Apply formatting
+                        params_formatted = params.copy()
+                        for col in ['Estimate', 'Std. Error', 'z-value', 'p-value', 'CI Lower', 'CI Upper']:
+                            params_formatted[col] = params_formatted[col].apply(lambda x: safe_param_format(x, "{:.3f}"))
+
+                        st.dataframe(params_formatted)
 
                         # Optionally, you can add more detailed APA formatting here
                         
