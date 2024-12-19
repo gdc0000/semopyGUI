@@ -77,6 +77,21 @@ Factor2 =~ Indicator4 + Indicator5 + Indicator6
 HigherOrderFactor =~ Factor1 + Factor2
 HigherOrderFactor ~~ HigherOrderFactor
 """,
+        "Latent Interaction Model": """
+# Latent Interaction Model
+FactorA =~ X1 + X2 + X3
+FactorB =~ Y1 + Y2 + Y3
+Interaction =~ FactorA * FactorB
+DependentVariable ~ Interaction + FactorA + FactorB
+""",
+        "Bifactor Model": """
+# Bifactor Model
+GeneralFactor =~ X1 + X2 + X3 + X4 + X5
+SpecificFactor1 =~ X1 + X2 + X3
+SpecificFactor2 =~ X4 + X5
+GeneralFactor ~~ SpecificFactor1 + SpecificFactor2
+SpecificFactor1 ~~ SpecificFactor2
+""",
     }
 }
 
@@ -221,8 +236,22 @@ def main():
                         # Parameter Estimates
                         st.write("### 🧮 Parameter Estimates")
                         params = model.inspect().reset_index()
-                        params.columns = ['Parameter', 'Estimate', 'Std. Error', 'z-value', 'p-value', 'CI Lower', 'CI Upper']
-                        
+
+                        # Dynamically rename columns based on the number of columns
+                        expected_columns = ['Parameter', 'Estimate', 'Std. Error', 'z-value', 'p-value', 'CI Lower', 'CI Upper']
+                        if params.shape[1] == len(expected_columns):
+                            params.columns = expected_columns
+                        elif params.shape[1] > len(expected_columns):
+                            # Handle extra columns by keeping only the expected ones
+                            params = params.iloc[:, :len(expected_columns)]
+                            params.columns = expected_columns
+                        else:
+                            # If fewer columns, append 'N/A' to match
+                            additional_cols = len(expected_columns) - params.shape[1]
+                            for _ in range(additional_cols):
+                                params[f'Extra_{_+1}'] = 'N/A'
+                            params.columns = expected_columns
+
                         # Function to safely format parameter estimates
                         def safe_param_format(val, fmt="{:.3f}"):
                             try:
@@ -233,7 +262,8 @@ def main():
                         # Apply formatting
                         params_formatted = params.copy()
                         for col in ['Estimate', 'Std. Error', 'z-value', 'p-value', 'CI Lower', 'CI Upper']:
-                            params_formatted[col] = params_formatted[col].apply(lambda x: safe_param_format(x, "{:.3f}"))
+                            if col in params_formatted.columns:
+                                params_formatted[col] = params_formatted[col].apply(lambda x: safe_param_format(x, "{:.3f}"))
 
                         st.dataframe(params_formatted)
 
