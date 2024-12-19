@@ -4,3 +4,7 @@ pandas
 numpy
 scipy
 statsmodels
+openpyxl
+pyreadstat
+xlrd
+json5
