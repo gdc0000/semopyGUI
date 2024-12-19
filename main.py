@@ -3,10 +3,82 @@ import pandas as pd
 from semopy import Model
 from semopy.inspector import inspect
 import numpy as np
-import json
 
 # Additional imports for handling different file formats
 import pyreadstat
+
+# Predefined Model Syntax Examples
+MODEL_SYNTAX_EXAMPLES = {
+    "Cross-Sectional Models": {
+        "Simple Mediation Model": """
+# Simple Mediation Model
+Mediator ~ IndependentVariable
+DependentVariable ~ Mediator + IndependentVariable
+""",
+        "Full Mediation Model": """
+# Full Mediation Model
+Mediator ~ IndependentVariable
+DependentVariable ~ Mediator
+IndependentVariable ~~ Mediator
+""",
+        "Confirmatory Factor Analysis": """
+# Confirmatory Factor Analysis
+Factor1 =~ Indicator1 + Indicator2 + Indicator3
+Factor2 =~ Indicator4 + Indicator5 + Indicator6
+Factor1 ~~ Factor2
+""",
+    },
+    "Longitudinal Models": {
+        "Cross-Lagged Panel Model": """
+# Cross-Lagged Panel Model
+Y1 ~ X0
+X1 ~ Y0
+Y2 ~ Y1 + X1
+X2 ~ X1 + Y1
+""",
+        "Latent Growth Curve Model": """
+# Latent Growth Curve Model
+Intercept =~ 1*Y1 + 1*Y2 + 1*Y3
+Slope =~ 0*Y1 + 1*Y2 + 2*Y3
+Y1 ~ Intercept + 0*Slope
+Y2 ~ Intercept + 1*Slope
+Y3 ~ Intercept + 2*Slope
+""",
+    },
+    "Multi-Group Models": {
+        "Measurement Invariance": """
+# Measurement Invariance
+Factor1 =~ Indicator1 + Indicator2 + Indicator3
+Factor2 =~ Indicator4 + Indicator5 + Indicator6
+# Invariant across groups
+Factor1 ~~ Factor2
+""",
+        "Structural Multi-Group Model": """
+# Structural Multi-Group Model
+Mediator ~ IndependentVariable
+DependentVariable ~ Mediator + IndependentVariable
+Mediator ~~ IndependentVariable
+# Constraints across groups
+Mediator ~~ IndependentVariable @1
+DependentVariable ~~ Mediator @1
+""",
+    },
+    "Advanced Models": {
+        "Mediation with Moderation": """
+# Mediation with Moderation
+Mediator ~ IndependentVariable + Moderator
+DependentVariable ~ Mediator + IndependentVariable + Moderator + IndependentVariable*Moderator
+IndependentVariable ~~ Moderator
+""",
+        "Higher-Order Factor Model": """
+# Higher-Order Factor Model
+Factor1 =~ Indicator1 + Indicator2 + Indicator3
+Factor2 =~ Indicator4 + Indicator5 + Indicator6
+HigherOrderFactor =~ Factor1 + Factor2
+HigherOrderFactor ~~ HigherOrderFactor
+""",
+    }
+}
 
 def format_apa_statistics(stat_dict):
     """
@@ -66,14 +138,16 @@ def load_data(uploaded_file):
         return None
 
 def main():
-    st.title("Structural Equation Modeling (SEM) with semopy")
+    st.set_page_config(page_title="SEM with semopy", layout="wide")
+    st.title("📊 Structural Equation Modeling (SEM) with semopy")
     st.write("""
     This app allows you to perform Structural Equation Modeling using your own dataset.
-    Upload your data in various formats, select variables, define your model, and view the results formatted in APA style.
+    Upload your data in various formats, explore different SEM models, and view the results formatted in APA style.
+    This tool is designed to support statistical education by providing clear and comprehensive modeling examples.
     """)
 
     # Sidebar for file upload
-    st.sidebar.header("1. Upload Data")
+    st.sidebar.header("🔍 Configuration Panel")
     uploaded_file = st.sidebar.file_uploader(
         "Upload your dataset",
         type=["csv", "xlsx", "xls", "sav", "por", "dta", "json"]
@@ -82,59 +156,70 @@ def main():
     if uploaded_file is not None:
         data = load_data(uploaded_file)
         if data is not None:
-            st.success("Data successfully uploaded!")
-            st.write("### Dataset Preview")
+            st.sidebar.success("✅ Data successfully uploaded!")
+            st.write("### 📂 Dataset Preview")
             st.dataframe(data.head())
 
-            # Sidebar for variable selection
-            st.sidebar.header("2. Select Variables")
-            all_columns = data.columns.tolist()
-            with st.sidebar.expander("Select Variables for SEM"):
-                endogenous = st.multiselect("Endogenous Variables", options=all_columns)
-                exogenous = st.multiselect("Exogenous Variables", options=all_columns)
-
-            # Display selected variables
-            if endogenous or exogenous:
-                st.write("### Selected Variables")
-                if endogenous:
-                    st.write("**Endogenous Variables:**", ", ".join(endogenous))
-                if exogenous:
-                    st.write("**Exogenous Variables:**", ", ".join(exogenous))
+            # Display variable names
+            st.write("### 🗂️ Available Variables")
+            st.markdown(f"**Total Variables:** {len(data.columns)}")
+            st.write(data.columns.tolist())
 
             # Sidebar for model specification
-            st.sidebar.header("3. Define Model Syntax")
+            st.sidebar.header("📝 Define Model Syntax")
             st.sidebar.markdown("""
             Define your SEM model using the **semopy** syntax. 
             Each relationship should be on a new line. 
-            For example:
-            
-            ```
-            y1 ~ x1 + x2
-            y2 ~ y1 + x3
-            x1 ~~ x2
-            ```
+            Use the **Model Syntax Portfolio** below to explore and select example models.
             """)
-            model_syntax = st.sidebar.text_area("Model Syntax", height=200)
+            
+            # Model Syntax Portfolio
+            with st.sidebar.expander("📚 Model Syntax Portfolio"):
+                st.markdown("### 🔍 Select a Model Example")
+                # Category Selection
+                category = st.selectbox("Select Model Category", options=list(MODEL_SYNTAX_EXAMPLES.keys()))
+                
+                # Example Selection based on Category
+                example = st.selectbox("Select Model Example", options=list(MODEL_SYNTAX_EXAMPLES[category].keys()))
+                
+                # Display Selected Example
+                if example:
+                    example_syntax = MODEL_SYNTAX_EXAMPLES[category][example]
+                    st.markdown(f"**Example: {example}**")
+                    st.code(example_syntax, language='python')
+                    
+                    # Button to Load Example into Text Area
+                    if st.button("📝 Load Example into Model Syntax"):
+                        st.session_state['model_syntax'] = example_syntax.strip()
+            
+            # Model Syntax Text Area
+            model_syntax = st.sidebar.text_area(
+                "✍️ Model Syntax",
+                height=400,
+                key='model_syntax',
+                help="Define your SEM model syntax here. You can write your own model or use the examples from the Model Syntax Portfolio."
+            )
 
             # Button to run SEM
-            if st.sidebar.button("Run SEM"):
+            if st.sidebar.button("🚀 Run SEM"):
                 if not model_syntax.strip():
-                    st.error("Please define the model syntax before running SEM.")
+                    st.sidebar.error("Please define the model syntax before running SEM.")
                 else:
                     try:
-                        model = Model(model_syntax)
-                        model.fit(data)
-                        results = model.inspect()
+                        with st.spinner("Fitting the SEM model..."):
+                            model = Model(model_syntax)
+                            model.fit(data)
+                            results = model.inspect()
 
-                        # Get model statistics
-                        stats = inspect(model)
-                        apa_stats = format_apa_statistics(stats)
+                            # Get model statistics
+                            stats = inspect(model)
+                            apa_stats = format_apa_statistics(stats)
 
-                        st.write("### Model Fit Statistics (APA Style)")
+                        st.write("### 📈 Model Fit Statistics (APA Style)")
                         st.text(apa_stats)
 
                         # Parameter Estimates
-                        st.write("### Parameter Estimates")
+                        st.write("### 🧮 Parameter Estimates")
                         params = model.inspect().reset_index()
                         params.columns = ['Parameter', 'Estimate', 'Std. Error', 'z-value', 'p-value', 'CI Lower', 'CI Upper']
                         
@@ -152,13 +237,11 @@ def main():
 
                         st.dataframe(params_formatted)
 
-                        # Optionally, you can add more detailed APA formatting here
-                        
                     except Exception as e:
                         st.error(f"An error occurred while running SEM: {e}")
 
     else:
-        st.info("Awaiting data file to be uploaded. Supported formats: CSV, Excel (XLS/XLSX), SPSS (SAV), Stata (DTA), JSON.")
+        st.info("🔄 Awaiting data file to be uploaded. Supported formats: CSV, Excel (XLS/XLSX), SPSS (SAV), Stata (DTA), JSON.")
 
 if __name__ == "__main__":
     main()
