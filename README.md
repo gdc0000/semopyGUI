@@ -1,6 +1,6 @@
 # SEM Analysis Web App with semopy
 
-[![Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)]([https://semopy-gui.streamlit.app/])
+[![Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://semopy-gui.streamlit.app/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.9+](https://img.shields.io/badge/Python-3.9%2B-blue.svg)](https://www.python.org/)
 
