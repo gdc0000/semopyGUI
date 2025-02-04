@@ -4,6 +4,19 @@ from semopy import Model, calc_stats
 import numpy as np
 import pyreadstat
 
+
+def add_footer():
+    """
+    Adds a footer with professional information and links.
+    """
+    st.markdown("---")
+    st.markdown("### **Gabriele Di Cicco, PhD in Social Psychology**")
+    st.markdown("""
+    [GitHub](https://github.com/gdc0000) | 
+    [ORCID](https://orcid.org/0000-0002-1439-5790) | 
+    [LinkedIn](https://www.linkedin.com/in/gabriele-di-cicco-124067b0/)
+    """)
+
 # Predefined Model Syntax Examples
 MODEL_SYNTAX_EXAMPLES = {
     "Cross-Sectional Models": {
@@ -200,6 +213,8 @@ def main():
         
         st.subheader("### 🧮 Parameter Estimates")
         st.dataframe(st.session_state.analysis_results["param_df"])
+
+    add_footer()
 
 if __name__ == "__main__":
     main()
