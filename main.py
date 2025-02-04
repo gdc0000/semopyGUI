@@ -14,10 +14,94 @@ def add_footer():
     [LinkedIn](https://www.linkedin.com/in/gabriele-di-cicco-124067b0/)
     """)
 
-# Predefined Model Syntax Examples (unchanged from original)
+# Predefined Model Syntax Examples
 MODEL_SYNTAX_EXAMPLES = {
-    # ... (keep the original MODEL_SYNTAX_EXAMPLES dictionary exactly as provided)
+    "Cross-Sectional Models": {
+        "Simple Mediation Model": """
+# Simple Mediation Model
+Mediator ~ IndependentVariable
+DependentVariable ~ Mediator + IndependentVariable
+""",
+        "Full Mediation Model": """
+# Full Mediation Model
+Mediator ~ IndependentVariable
+DependentVariable ~ Mediator
+IndependentVariable ~~ Mediator
+""",
+        "Confirmatory Factor Analysis": """
+# Confirmatory Factor Analysis
+Factor1 =~ Indicator1 + Indicator2 + Indicator3
+Factor2 =~ Indicator4 + Indicator5 + Indicator6
+Factor1 ~~ Factor2
+""",
+    },
+    "Longitudinal Models": {
+        "Cross-Lagged Panel Model": """
+# Cross-Lagged Panel Model
+Y1 ~ X0
+X1 ~ Y0
+Y2 ~ Y1 + X1
+X2 ~ X1 + Y1
+""",
+        "Latent Growth Curve Model": """
+# Latent Growth Curve Model
+Intercept =~ 1*Y1 + 1*Y2 + 1*Y3
+Slope =~ 0*Y1 + 1*Y2 + 2*Y3
+Y1 ~ Intercept + 0*Slope
+Y2 ~ Intercept + 1*Slope
+Y3 ~ Intercept + 2*Slope
+""",
+    },
+    "Multi-Group Models": {
+        "Measurement Invariance": """
+# Measurement Invariance
+Factor1 =~ Indicator1 + Indicator2 + Indicator3
+Factor2 =~ Indicator4 + Indicator5 + Indicator6
+# Invariant across groups
+Factor1 ~~ Factor2
+""",
+        "Structural Multi-Group Model": """
+# Structural Multi-Group Model
+Mediator ~ IndependentVariable
+DependentVariable ~ Mediator + IndependentVariable
+Mediator ~~ IndependentVariable
+# Constraints across groups
+Mediator ~~ IndependentVariable @1
+DependentVariable ~~ Mediator @1
+""",
+    },
+    "Advanced Models": {
+        "Mediation with Moderation": """
+# Mediation with Moderation
+Mediator ~ IndependentVariable + Moderator
+DependentVariable ~ Mediator + IndependentVariable + Moderator + IndependentVariable*Moderator
+IndependentVariable ~~ Moderator
+""",
+        "Higher-Order Factor Model": """
+# Higher-Order Factor Model
+Factor1 =~ Indicator1 + Indicator2 + Indicator3
+Factor2 =~ Indicator4 + Indicator5 + Indicator6
+HigherOrderFactor =~ Factor1 + Factor2
+HigherOrderFactor ~~ HigherOrderFactor
+""",
+        "Latent Interaction Model": """
+# Latent Interaction Model
+FactorA =~ X1 + X2 + X3
+FactorB =~ Y1 + Y2 + Y3
+Interaction =~ FactorA * FactorB
+DependentVariable ~ Interaction + FactorA + FactorB
+""",
+        "Bifactor Model": """
+# Bifactor Model
+GeneralFactor =~ X1 + X2 + X3 + X4 + X5
+SpecificFactor1 =~ X1 + X2 + X3
+SpecificFactor2 =~ X4 + X5
+GeneralFactor ~~ SpecificFactor1 + SpecificFactor2
+SpecificFactor1 ~~ SpecificFactor2
+""",
+    }
 }
+
 
 @st.cache_data(show_spinner=False)
 def load_data(uploaded_file):
