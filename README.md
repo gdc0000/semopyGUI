@@ -76,12 +76,6 @@ A professional web application for conducting Structural Equation Modeling (SEM)
   - Real-time model fitting <60s for typical models
   - Cached data processing
 
-## Contributing 🤝
-
-We welcome contributions! Please see our:
-- [Contribution Guidelines](CONTRIBUTING.md)
-- [Code of Conduct](CODE_OF_CONDUCT.md)
-- [Issue Template](.github/ISSUE_TEMPLATE.md)
 
 ## Citation & Attribution 📚
 
