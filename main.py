@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 from semopy import Model
-from semopy.inspector import inspect
+#from semopy.inspector import inspect  # No longer used
 import numpy as np
 import pyreadstat
 
@@ -95,21 +95,27 @@ SpecificFactor1 ~~ SpecificFactor2
 
 def format_apa_statistics(stat_dict):
     """
-    Formats a dictionary of statistics into APA style strings with corrected keys.
+    Formats a dictionary of statistics into APA style strings.
+    Attempts multiple key names to ensure compatibility with different semopy versions.
     """
-    def safe_format(value, fmt=".2f"):
-        if isinstance(value, (int, float, np.number)):
-            return format(value, fmt)
-        return str(value)
+    if not stat_dict:
+        return "Fit statistics not available."
 
-    chi_sq = safe_format(stat_dict.get('Chi2', 'N/A'), ".2f")
-    df = safe_format(stat_dict.get('DoF', 'N/A'), ".0f")
-    p_val = safe_format(stat_dict.get('PValue', 'N/A'), ".3f")
-    cfi = safe_format(stat_dict.get('CFI', 'N/A'), ".3f")
-    tli = safe_format(stat_dict.get('TLI', 'N/A'), ".3f")
-    rmsea = safe_format(stat_dict.get('RMSEA', 'N/A'), ".3f")
-    rmsea_lower = safe_format(stat_dict.get('RMSEA_CI_lower', 'N/A'), ".3f")
-    rmsea_upper = safe_format(stat_dict.get('RMSEA_CI_upper', 'N/A'), ".3f")
+    # Try various key names for each statistic:
+    chi_sq = stat_dict.get('Chi2') or stat_dict.get('chi2') or 'N/A'
+    df = stat_dict.get('DoF') or stat_dict.get('df') or 'N/A'
+    p_val = stat_dict.get('PValue') or stat_dict.get('pvalue') or 'N/A'
+    cfi = stat_dict.get('CFI') or stat_dict.get('cfi') or 'N/A'
+    tli = stat_dict.get('TLI') or stat_dict.get('tli') or 'N/A'
+    rmsea = stat_dict.get('RMSEA') or stat_dict.get('rmsea') or 'N/A'
+    
+    # Attempt to extract RMSEA confidence interval; keys might vary
+    rmsea_lower = (stat_dict.get('RMSEA_CI_lower') or 
+                   stat_dict.get('rmsea_ci_lower') or 
+                   (stat_dict.get('RMSEA_CI', {}) or {}).get('lower')) or 'N/A'
+    rmsea_upper = (stat_dict.get('RMSEA_CI_upper') or 
+                   stat_dict.get('rmsea_ci_upper') or 
+                   (stat_dict.get('RMSEA_CI', {}) or {}).get('upper')) or 'N/A'
 
     apa_output = (
         f"Chi-square: {chi_sq}, df = {df}, p = {p_val}\n"
@@ -128,7 +134,7 @@ def load_data(uploaded_file):
         elif file_extension in ["xlsx", "xls"]:
             data = pd.read_excel(uploaded_file)
         elif file_extension == "sas7bdat":
-            data, meta = pyreadstat.read_sas7bdat(uploaded_file)
+            data, _ = pyreadstat.read_sas7bdat(uploaded_file)
         else:
             st.error("Unsupported file type.")
             return None
@@ -183,8 +189,13 @@ def main():
                     model = Model(model_syntax)
                     model.fit(data)
                     
-                    # Get fit statistics and format for APA reporting
-                    stats = inspect(model)
+                    # Use calc_stats() if available; fallback to an empty dict if not.
+                    try:
+                        stats = model.calc_stats()
+                    except AttributeError:
+                        stats = {}
+                        st.warning("Fit statistics are not available with this version of semopy.")
+                    
                     apa_stats = format_apa_statistics(stats)
                     
                     # Process parameter estimates once
@@ -202,7 +213,11 @@ def main():
                 
                 st.subheader("### 🧮 Parameter Estimates")
                 st.dataframe(param_df)
-
+                
+                # Optional: View the full statistics dictionary
+                if st.checkbox("Show full fit statistics dictionary"):
+                    st.json(stats)
+                    
             except Exception as e:
                 st.error(f"Error: {str(e)}")
 
