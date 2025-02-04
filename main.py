@@ -127,7 +127,6 @@ def main():
     st.title("📊 Structural Equation Modeling (SEM) with semopy")
     st.write(
         "Upload your dataset, choose or edit your model syntax, and run the model. "
-        "Fit indices (χ2, RMSEA, CFI, TLI, NFI, GFI, AGFI) will be calculated using semopy.calc_stats."
     )
 
     # Initialize session state variables
