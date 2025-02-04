@@ -116,7 +116,7 @@ def main():
     st.title("📊 Structural Equation Modeling (SEM) with semopy")
     st.write(
         "Upload your dataset, choose or edit your model syntax, and run the model. "
-        "Fit indices (e.g., chi2, RMSEA, CFI, TLI, NFI, GFI, AGFI) will be calculated using semopy.calc_stats."
+        "Fit indices (χ2, RMSEA, CFI, TLI, NFI, GFI, AGFI) will be calculated using semopy.calc_stats."
     )
 
     # Initialize session state for analysis results if not already set
@@ -189,8 +189,15 @@ def main():
     # Display analysis results if available
     if st.session_state.analysis_results:
         st.subheader("### 📈 Model Fit Statistics")
-        # Display the fit indices table; transposing so that indices become rows
-        st.table(st.session_state.analysis_results["stats"].T)
+        try:
+            stats = st.session_state.analysis_results["stats"]
+            # Convert stats to a DataFrame if it isn't one already
+            if not isinstance(stats, pd.DataFrame):
+                stats = pd.DataFrame(stats)
+            st.table(stats.T)
+        except Exception as e:
+            st.error(f"Error displaying fit statistics: {e}")
+        
         st.subheader("### 🧮 Parameter Estimates")
         st.dataframe(st.session_state.analysis_results["param_df"])
 
