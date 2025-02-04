@@ -97,83 +97,114 @@ def format_apa_statistics(stat_dict):
     """
     Formats a dictionary of statistics into APA style strings with corrected keys.
     """
-    apa_output = ""
-    
     def safe_format(value, fmt=".2f"):
         if isinstance(value, (int, float, np.number)):
-            return format(value, fmt) if fmt else str(int(value))
+            return format(value, fmt)
         return str(value)
 
     chi_sq = safe_format(stat_dict.get('Chi2', 'N/A'), ".2f")
-    df = safe_format(stat_dict.get('DoF', 'N/A'), ".0f")  # Ensure integer format
+    df = safe_format(stat_dict.get('DoF', 'N/A'), ".0f")
     p_val = safe_format(stat_dict.get('PValue', 'N/A'), ".3f")
     cfi = safe_format(stat_dict.get('CFI', 'N/A'), ".3f")
     tli = safe_format(stat_dict.get('TLI', 'N/A'), ".3f")
     rmsea = safe_format(stat_dict.get('RMSEA', 'N/A'), ".3f")
     rmsea_lower = safe_format(stat_dict.get('RMSEA_CI_lower', 'N/A'), ".3f")
     rmsea_upper = safe_format(stat_dict.get('RMSEA_CI_upper', 'N/A'), ".3f")
-    
-    apa_output += f"Chi-square: {chi_sq}, df = {df}, p = {p_val}\n"
-    apa_output += f"CFI: {cfi}\nTLI: {tli}\n"
-    apa_output += f"RMSEA: {rmsea} (90% CI {rmsea_lower} - {rmsea_upper})\n"
+
+    apa_output = (
+        f"Chi-square: {chi_sq}, df = {df}, p = {p_val}\n"
+        f"CFI: {cfi}\nTLI: {tli}\n"
+        f"RMSEA: {rmsea} (90% CI {rmsea_lower} - {rmsea_upper})\n"
+    )
     return apa_output
 
+@st.cache_data(show_spinner=False)
 def load_data(uploaded_file):
     """Loads data from various formats with error handling."""
-    # (Unchanged, retain original code here)
+    try:
+        file_extension = uploaded_file.name.split(".")[-1].lower()
+        if file_extension in ["csv", "txt"]:
+            data = pd.read_csv(uploaded_file)
+        elif file_extension in ["xlsx", "xls"]:
+            data = pd.read_excel(uploaded_file)
+        elif file_extension == "sas7bdat":
+            data, meta = pyreadstat.read_sas7bdat(uploaded_file)
+        else:
+            st.error("Unsupported file type.")
+            return None
+        return data
+    except Exception as e:
+        st.error(f"Error loading data: {e}")
+        return None
 
 def main():
     st.set_page_config(page_title="SEM with semopy", layout="wide")
     st.title("📊 Structural Equation Modeling (SEM) with semopy")
-    st.write("...")  # Original description
+    st.write("Use this app to run SEM analyses with the semopy package. Upload your dataset, choose or enter your model syntax, and run the model.")
 
-    # Sidebar file upload
-    uploaded_file = st.sidebar.file_uploader(...)
+    # Sidebar: Data upload
+    st.sidebar.header("1. Upload your Dataset")
+    uploaded_file = st.sidebar.file_uploader("Choose a CSV, Excel, or SAS file", type=["csv", "txt", "xlsx", "xls", "sas7bdat"])
+
+    data = None
     if uploaded_file is not None:
         data = load_data(uploaded_file)
         if data is not None:
-            # Handle missing data
+            # Warn if missing values exist
             if data.isnull().sum().sum() > 0:
-                st.warning("⚠️ Dataset contains missing values. SEM requires complete cases.")
-                if st.checkbox("Drop rows with missing values?"):
+                st.sidebar.warning("⚠️ Dataset contains missing values. SEM requires complete cases.")
+                if st.sidebar.checkbox("Drop rows with missing values?"):
                     data = data.dropna().reset_index(drop=True)
-                    st.write(f"Using {len(data)} complete cases.")
-
-            st.write("### 📂 Dataset Preview")
+                    st.sidebar.info(f"Using {len(data)} complete cases.")
+            st.subheader("📂 Dataset Preview")
             st.dataframe(data.head())
+        else:
+            st.stop()  # Stop if data couldn't be loaded
 
-            # Model syntax portfolio and input (unchanged)
-            model_syntax = st.sidebar.text_area(...)
+    # Sidebar: Model syntax selection
+    st.sidebar.header("2. Define your Model Syntax")
+    model_category = st.sidebar.selectbox("Select Model Category", list(MODEL_SYNTAX_EXAMPLES.keys()))
+    model_example = st.sidebar.selectbox("Select a Model Example", list(MODEL_SYNTAX_EXAMPLES[model_category].keys()))
+    default_syntax = MODEL_SYNTAX_EXAMPLES[model_category][model_example]
 
-            if st.sidebar.button("🚀 Run SEM"):
-                if not model_syntax.strip():
-                    st.error("Please define model syntax.")
-                else:
-                    try:
-                        with st.spinner("Fitting model..."):
-                            model = Model(model_syntax)
-                            model.fit(data)
-                            stats = inspect(model)  # Get fit statistics
-                            apa_stats = format_apa_statistics(stats)
-                            
-                            # Process parameter estimates
-                            params = model.inspect().copy()
-                            params['Parameter'] = params['lval'] + ' ' + params['op'] + ' ' + params['rval']
-                            params = params[['Parameter', 'Estimate', 'Std. Err', 'z-value', 'p-value']]
-                            params.columns = ['Parameter', 'Estimate', 'Std. Error', 'z-value', 'p-value']
+    model_syntax = st.sidebar.text_area("Edit Model Syntax", value=default_syntax, height=200)
 
-                            # Formatting parameters
-                            for col in ['Estimate', 'Std. Error', 'z-value', 'p-value']:
-                                params[col] = params[col].apply(lambda x: f"{x:.3f}" if isinstance(x, (int, float)) else x)
+    # Main: Run model button
+    st.sidebar.header("3. Run Analysis")
+    if st.sidebar.button("🚀 Run SEM"):
+        if data is None:
+            st.error("Please upload a dataset first.")
+            return
+        if not model_syntax.strip():
+            st.error("Please define model syntax.")
+        else:
+            try:
+                with st.spinner("Fitting model..."):
+                    model = Model(model_syntax)
+                    model.fit(data)
+                    
+                    # Get fit statistics and format for APA reporting
+                    stats = inspect(model)
+                    apa_stats = format_apa_statistics(stats)
+                    
+                    # Process parameter estimates once
+                    param_df = model.inspect().copy()
+                    param_df['Parameter'] = param_df['lval'] + ' ' + param_df['op'] + ' ' + param_df['rval']
+                    param_df = param_df[['Parameter', 'Estimate', 'Std. Err', 'z-value', 'p-value']]
+                    param_df.columns = ['Parameter', 'Estimate', 'Std. Error', 'z-value', 'p-value']
+                    
+                    # Format numerical columns
+                    for col in ['Estimate', 'Std. Error', 'z-value', 'p-value']:
+                        param_df[col] = param_df[col].apply(lambda x: f"{x:.3f}" if isinstance(x, (int, float)) else x)
 
-                        st.write("### 📈 Model Fit Statistics")
-                        st.code(apa_stats)
-                        
-                        st.write("### 🧮 Parameter Estimates")
-                        st.dataframe(params)
-                        
-                    except Exception as e:
-                        st.error(f"Error: {str(e)}")
+                st.subheader("### 📈 Model Fit Statistics")
+                st.code(apa_stats, language="python")
+                
+                st.subheader("### 🧮 Parameter Estimates")
+                st.dataframe(param_df)
+
+            except Exception as e:
+                st.error(f"Error: {str(e)}")
 
 if __name__ == "__main__":
     main()
