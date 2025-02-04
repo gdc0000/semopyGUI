@@ -1,12 +1,11 @@
 # SEM Analysis Web App with semopy
 
-[![Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://your-app-url.streamlit.app/)
+[![Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)]([https://your-app-url.streamlit.app/](https://semopy-gui.streamlit.app/))
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.9+](https://img.shields.io/badge/Python-3.9%2B-blue.svg)](https://www.python.org/)
 
 A professional web application for conducting Structural Equation Modeling (SEM) analyses directly in your browser. Designed for researchers and data analysts in social sciences.
 
-![App Screenshot](https://via.placeholder.com/800x400.png?text=SEM+Analysis+Interface) <!-- Add real screenshot -->
 
 ## Features ✨
 
